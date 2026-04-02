@@ -26,30 +26,18 @@
 </template>
 
 <script setup>
+import { ref, onMounted } from 'vue';
 import { useAuthStore } from '../stores/auth';
 
 const auth = useAuthStore();
 
-const apps = [
-  {
-    name: 'Bundle Buyer',
-    url: 'https://bundlebuyer.drugansdrums.com',
-    icon: '📦',
-    description: 'Manage bundle purchasing and deals.',
-  },
-  {
-    name: 'Counter Offer',
-    url: 'https://counteroffer.drugansdrums.com',
-    icon: '🤝',
-    description: 'Handle counter offers and negotiations.',
-  },
-  {
-    name: 'Price Changer',
-    url: 'https://pricechanger.drugansdrums.com',
-    icon: '💲',
-    description: 'Update and manage product pricing.',
-  },
-];
+const apps = ref([]);
+
+onMounted(async () => {
+  const res = await fetch('/api/apps', { credentials: 'include' });
+  const data = await res.json();
+  apps.value = data.apps ?? [];
+});
 </script>
 
 <style scoped>

@@ -74,11 +74,190 @@
         </tbody>
       </table>
     </section>
+
+    <!-- Add App -->
+    <section class="card create-app-section">
+      <h2>Add App</h2>
+      <form @submit.prevent="handleCreateApp">
+        <div v-if="appCreateError" class="error-msg">{{ appCreateError }}</div>
+        <div v-if="appCreateSuccess" class="success-msg">{{ appCreateSuccess }}</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="appName">Name</label>
+            <input id="appName" v-model="newApp.name" type="text" required />
+          </div>
+          <div class="form-group">
+            <label for="appUrl">URL</label>
+            <input id="appUrl" v-model="newApp.url" type="url" required placeholder="https://" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="appIcon">Icon (emoji)</label>
+            <input id="appIcon" v-model="newApp.icon" type="text" placeholder="🔗" maxlength="8" />
+          </div>
+          <div class="form-group">
+            <label for="appDesc">Description</label>
+            <input id="appDesc" v-model="newApp.description" type="text" />
+          </div>
+        </div>
+        <button class="btn btn-primary" :disabled="appCreating">
+          {{ appCreating ? 'Adding…' : 'Add App' }}
+        </button>
+      </form>
+    </section>
+
+    <!-- Edit App -->
+    <section v-if="editingApp" class="card edit-app-section">
+      <h2>Edit App</h2>
+      <form @submit.prevent="handleUpdateApp">
+        <div v-if="appEditError" class="error-msg">{{ appEditError }}</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Name</label>
+            <input v-model="editApp.name" type="text" required />
+          </div>
+          <div class="form-group">
+            <label>URL</label>
+            <input v-model="editApp.url" type="url" required />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Icon (emoji)</label>
+            <input v-model="editApp.icon" type="text" maxlength="8" />
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <input v-model="editApp.description" type="text" />
+          </div>
+        </div>
+        <div class="edit-actions">
+          <button class="btn btn-primary" :disabled="appUpdating">{{ appUpdating ? 'Saving…' : 'Save' }}</button>
+          <button type="button" class="btn btn-secondary" @click="editingApp = null">Cancel</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Apps List -->
+    <section class="card apps-list-section">
+      <h2>Apps</h2>
+      <div v-if="loadingApps" class="loading">Loading apps…</div>
+      <table v-else class="users-table">
+        <thead>
+          <tr>
+            <th>Icon</th>
+            <th>Name</th>
+            <th>URL</th>
+            <th>Description</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="a in apps" :key="a.id">
+            <td class="app-icon-cell">{{ a.icon }}</td>
+            <td>{{ a.name }}</td>
+            <td><a :href="a.url" target="_blank" rel="noopener">{{ a.url }}</a></td>
+            <td>{{ a.description }}</td>
+            <td class="row-actions">
+              <button class="btn btn-secondary btn-sm" @click="startEdit(a)">Edit</button>
+              <button class="btn btn-danger btn-sm" @click="handleDeleteApp(a)">Delete</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
+
+// ── Apps ──────────────────────────────────────────────────────────────────────
+const apps = ref([]);
+const loadingApps = ref(true);
+
+const newApp = reactive({ name: '', url: '', icon: '', description: '' });
+const appCreating = ref(false);
+const appCreateError = ref('');
+const appCreateSuccess = ref('');
+
+const editingApp = ref(null);
+const editApp = reactive({ name: '', url: '', icon: '', description: '' });
+const appUpdating = ref(false);
+const appEditError = ref('');
+
+async function fetchApps() {
+  loadingApps.value = true;
+  const res = await fetch('/api/apps', { credentials: 'include' });
+  const data = await res.json();
+  apps.value = data.apps ?? [];
+  loadingApps.value = false;
+}
+
+async function handleCreateApp() {
+  appCreateError.value = '';
+  appCreateSuccess.value = '';
+  appCreating.value = true;
+  try {
+    const res = await fetch('/api/apps', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ ...newApp }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to add app');
+    appCreateSuccess.value = `"${data.app.name}" added.`;
+    newApp.name = '';
+    newApp.url = '';
+    newApp.icon = '';
+    newApp.description = '';
+    await fetchApps();
+  } catch (e) {
+    appCreateError.value = e.message;
+  } finally {
+    appCreating.value = false;
+  }
+}
+
+function startEdit(app) {
+  editingApp.value = app;
+  editApp.name = app.name;
+  editApp.url = app.url;
+  editApp.icon = app.icon;
+  editApp.description = app.description;
+  appEditError.value = '';
+}
+
+async function handleUpdateApp() {
+  appEditError.value = '';
+  appUpdating.value = true;
+  try {
+    const res = await fetch(`/api/apps/${editingApp.value.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ ...editApp }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to update app');
+    editingApp.value = null;
+    await fetchApps();
+  } catch (e) {
+    appEditError.value = e.message;
+  } finally {
+    appUpdating.value = false;
+  }
+}
+
+async function handleDeleteApp(app) {
+  if (!confirm(`Delete "${app.name}"?`)) return;
+  await fetch(`/api/apps/${app.id}`, { method: 'DELETE', credentials: 'include' });
+  if (editingApp.value?.id === app.id) editingApp.value = null;
+  await fetchApps();
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 const users = ref([]);
 const loadingUsers = ref(true);
@@ -137,7 +316,10 @@ function formatDate(iso) {
   return new Date(iso + 'Z').toLocaleDateString();
 }
 
-onMounted(fetchUsers);
+onMounted(() => {
+  fetchUsers();
+  fetchApps();
+});
 </script>
 
 <style scoped>
@@ -200,5 +382,54 @@ onMounted(fetchUsers);
 
 .loading {
   color: var(--color-text-muted);
+}
+
+.create-app-section,
+.edit-app-section {
+  margin-bottom: 1.5rem;
+}
+
+.create-app-section h2,
+.edit-app-section h2,
+.apps-list-section h2 {
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.app-icon-cell {
+  font-size: 1.25rem;
+  text-align: center;
+}
+
+.row-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.users-table td a {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-size: 0.85rem;
+  word-break: break-all;
+}
+
+.users-table td a:hover {
+  text-decoration: underline;
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+
+.btn-secondary:hover {
+  background: var(--color-surface-hover);
 }
 </style>

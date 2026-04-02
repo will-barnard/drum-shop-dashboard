@@ -8,6 +8,7 @@ const path = require('path');
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
 const userRoutes = require('./routes/users');
+const appsRoutes = require('./routes/apps');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -41,6 +42,7 @@ app.use(cookieParser());
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/apps', appsRoutes);
 
 // Serve Vue client if dist exists
 const clientDist = path.join(__dirname, '..', 'client', 'dist');

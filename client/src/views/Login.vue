@@ -39,23 +39,42 @@
 
 <script setup>
 import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 
 const auth = useAuthStore();
 const router = useRouter();
+const route = useRoute();
 
 const email = ref('');
 const password = ref('');
 const error = ref('');
 const submitting = ref(false);
 
+function isValidRedirect(url) {
+  try {
+    const parsed = new URL(url);
+    return (
+      parsed.protocol === 'https:' &&
+      parsed.hostname.endsWith('.drugansdrums.com') &&
+      parsed.hostname !== 'drugansdrums.com'
+    );
+  } catch {
+    return false;
+  }
+}
+
 async function handleLogin() {
   error.value = '';
   submitting.value = true;
   try {
     await auth.login(email.value, password.value);
-    router.push('/');
+    const redirect = route.query.redirect;
+    if (redirect && isValidRedirect(redirect)) {
+      window.location.href = redirect;
+    } else {
+      router.push('/');
+    }
   } catch (e) {
     error.value = e.message;
   } finally {

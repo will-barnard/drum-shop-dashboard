@@ -24,6 +24,20 @@ function cookieOptions() {
   return opts;
 }
 
+// Validate that a redirect URL is a safe *.drugansdrums.com subdomain
+function isValidRedirect(url) {
+  try {
+    const parsed = new URL(url);
+    return (
+      parsed.protocol === 'https:' &&
+      parsed.hostname.endsWith('.drugansdrums.com') &&
+      parsed.hostname !== 'drugansdrums.com'
+    );
+  } catch {
+    return false;
+  }
+}
+
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
@@ -64,10 +78,17 @@ router.get('/me', authenticate, (req, res) => {
   res.json({ user: req.user });
 });
 
-// GET /api/auth/verify — for other apps to verify the shared cookie
-// Returns the user if valid, 401 otherwise
+// GET /api/auth/verify — for other subdomain apps to verify the shared cookie
+// Returns user info and token metadata. Accepts cookie or Authorization header.
 router.get('/verify', authenticate, (req, res) => {
-  res.json({ user: req.user });
+  const { iat, exp } = req.tokenPayload;
+  res.json({
+    user: req.user,
+    token: {
+      issuedAt: new Date(iat * 1000).toISOString(),
+      expiresAt: new Date(exp * 1000).toISOString(),
+    },
+  });
 });
 
 module.exports = router;

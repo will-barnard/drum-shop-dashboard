@@ -4,7 +4,15 @@ const db = require('../db');
 const JWT_SECRET = process.env.JWT_SECRET || 'local-dev-secret';
 
 function authenticate(req, res, next) {
-  const token = req.cookies?.token;
+  // Accept token from Authorization header or cookie
+  let token = null;
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.slice(7);
+  } else {
+    token = req.cookies?.token;
+  }
+
   if (!token) {
     return res.status(401).json({ error: 'Not authenticated' });
   }
@@ -20,6 +28,7 @@ function authenticate(req, res, next) {
     }
 
     req.user = user;
+    req.tokenPayload = payload;
     next();
   } catch {
     return res.status(401).json({ error: 'Invalid or expired token' });

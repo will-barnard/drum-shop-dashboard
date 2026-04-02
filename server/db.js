@@ -19,4 +19,28 @@ db.exec(`
   )
 `);
 
+db.exec(`
+  CREATE TABLE IF NOT EXISTS apps (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    url TEXT NOT NULL,
+    icon TEXT NOT NULL DEFAULT '🔗',
+    description TEXT NOT NULL DEFAULT '',
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )
+`);
+
+// Seed default apps on first run
+const appCount = db.prepare('SELECT COUNT(*) as count FROM apps').get();
+if (appCount.count === 0) {
+  const insert = db.prepare(
+    'INSERT INTO apps (name, url, icon, description, sort_order) VALUES (?, ?, ?, ?, ?)'
+  );
+  insert.run('Bundle Buyer', 'https://bundlebuyer.drugansdrums.com', '📦', 'Manage bundle purchasing and deals.', 0);
+  insert.run('Counter Offer', 'https://counteroffer.drugansdrums.com', '🤝', 'Handle counter offers and negotiations.', 1);
+  insert.run('Price Changer', 'https://pricechanger.drugansdrums.com', '💲', 'Update and manage product pricing.', 2);
+}
+
 module.exports = db;

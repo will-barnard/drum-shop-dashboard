@@ -24,4 +24,4 @@ COPY --from=client-build /build/client/dist ./client/dist/
 
 EXPOSE 3000
 
-CMD ["node", "server/index.js"]
+CMD ["sh", "-c", "node server/seed.js && node server/index.js"]

@@ -2,7 +2,7 @@
 FROM node:20-alpine AS client-build
 WORKDIR /build/client
 COPY client/package.json client/package-lock.json ./
-RUN npm ci
+RUN npm install
 COPY client/ ./
 RUN npm run build
 
@@ -12,7 +12,7 @@ WORKDIR /app
 
 # Install server dependencies
 COPY server/package.json server/package-lock.json ./server/
-RUN cd server && npm ci --omit=dev
+RUN cd server && npm install --omit=dev
 
 # Copy server source
 COPY server/ ./server/
@@ -22,6 +22,6 @@ COPY --from=client-build /build/client/dist ./client/dist/
 
 # .env and SQLite DB are mounted at runtime
 
-EXPOSE 49195
+EXPOSE 3000
 
 CMD ["node", "server/index.js"]

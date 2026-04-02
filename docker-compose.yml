@@ -1,18 +1,23 @@
 services:
   dashboard:
     build: .
-    container_name: drugans-dashboard
     restart: unless-stopped
-    ports:
-      - "49195:49195"
+    expose:
+      - "3000"
     env_file:
       - .env
     volumes:
       - db-data:/app/data
     environment:
       - NODE_ENV=production
-      - PORT=49195
+      - PORT=3000
       - DB_PATH=/app/data/dashboard.db
+    networks:
+      - internal
 
 volumes:
   db-data:
+    name: drugans-dashboard-db
+
+networks:
+  internal:
